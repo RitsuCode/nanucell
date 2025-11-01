@@ -1,22 +1,22 @@
 <template>
   <div class="bg-[rgb(105,30,104)] text-white">
-    <div class="container mx-auto px-4">
+    <div class="container mx-auto p-4">
       <!-- Certifications -->
-      <div class="flex justify-between items-center mb-12 px-10 py-3">
+      <div class="flex justify-between items-center mb-5 px-10 py-3">
         <div class="flex items-center gap-4">
-          <img src="../assets/images/FDA.png" alt="FDA" class="h-20">
+          <img src="../assets/images/FDA.png" alt="FDA" class="h-20" />
           <span>FDA Approved</span>
         </div>
         <div class="flex items-center gap-4">
-          <img src="../assets/images/Organic.png" alt="Organic" class="h-20">
+          <img src="../assets/images/Organic.png" alt="Organic" class="h-20" />
           <span>100% Organic</span>
         </div>
         <div class="flex items-center gap-4">
-          <img src="../assets/images/GMP.png" alt="GMP" class="h-20">
+          <img src="../assets/images/GMP.png" alt="GMP" class="h-20" />
           <span>GMP</span>
         </div>
         <div class="flex items-center gap-4">
-          <img src="../assets/images/Halal.png" alt="Halal" class="h-20">
+          <img src="../assets/images/Halal.png" alt="Halal" class="h-20" />
           <span>HALAL Approved</span>
         </div>
       </div>
@@ -25,21 +25,22 @@
       <div class="flex gap-8">
         <!-- Video Section -->
         <div class="w-1/3">
-          <div class="sticky top-24 bg-gray-900 rounded-lg shadow-lg">
-            <video 
-              class="w-full aspect-[9/16] rounded-lg" 
-              controls
-              style="max-height: calc(100vh - 120px);"
-            >
-              <source src="../assets/videos/Doc Cat Ultima.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
+          <div class="sticky top-24 bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+            <iframe
+              class="w-full aspect-[9/16] rounded-lg"
+              :src="embedUrl"
+              allow="autoplay; encrypted-media"
+              allowfullscreen
+              style="max-height: calc(100vh - 120px); border: none;"
+            ></iframe>
           </div>
         </div>
 
         <!-- Benefits Content -->
         <div class="w-2/3">
-          <h2 class="text-4xl font-bold text-yellow-500 mb-12">Ultima Stem Cell Plus Benefits</h2>
+          <h2 class="text-4xl font-bold text-yellow-500 mb-12">
+            Ultima Stem Cell Plus Benefits
+          </h2>
           <div class="grid grid-cols-2 gap-8">
             <div class="text-center">
               <h3 class="text-3xl font-normal mb-4">Cellular Regeneration</h3>
@@ -91,6 +92,11 @@
 
 <script>
 export default {
-  name: 'Benefits'
+  name: 'Benefits',
+  data() {
+    return {
+      embedUrl: 'https://drive.google.com/file/d/1FkrJpFxGj4CvZfQr8Oh01oq1AcjcdT1g/preview'
+    }
+  }
 }
 </script>

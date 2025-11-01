@@ -9,13 +9,13 @@
 
         <!-- Right: Video (takes 1/3 on large screens) -->
         <div class="w-full lg:w-1/3 flex items-start">
-          <video
-            ref="videoEl"
-            :src="docVideo"
-            class="w-full rounded-lg shadow-lg bg-black"
-            controls
-            playsinline
-          ></video>
+          <iframe
+              class="w-full aspect-[4/5] rounded-lg"
+              :src="docVideo"
+              allow="autoplay; encrypted-media"
+              allowfullscreen
+              style="max-height: calc(100vh - 120px); border: none;"
+            ></iframe>
         </div>
       </div>
     </div>
@@ -24,7 +24,9 @@
 
 <script setup>
 import doctorsImg from '../assets/images/Doctors.png'
-import docVideo from '../assets/videos/Doc Shiela on Ultima Stem Plus.mp4'
+
+// Use the Google Drive link directly
+const docVideo = 'https://drive.google.com/file/d/1ZpxrrVY3D_FmgksI4fmDCsYaGSun8sPk/preview'
 </script>
 
 <style scoped>
