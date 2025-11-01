@@ -5,9 +5,9 @@
       <div class="flex flex-col lg:flex-row gap-8 items-center justify-center">
         <!-- Video Section - Same height as carousel -->
         <div class="w-full lg:w-2/5 flex items-center justify-center">
-          <div class="w-3/5 shadow-lg rounded-lg border-2 border-gray-200 overflow-hidden">
+          <div class=" shadow-lg rounded-lg border-2 border-gray-200">
             <iframe
-              class="w-full aspect-[9/16] rounded-lg bg-black"
+              class="w-full aspect-[4/5] rounded-lg bg-black"
               :src="video"
               allow="autoplay; encrypted-media"
               allowfullscreen

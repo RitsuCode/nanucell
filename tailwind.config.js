@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      backdropBlur: {
+        xs: '2px',
+      },
       backgroundImage: {
         'logo': "url('/src/assets/images/logo.png')",
         'docTru': "url('/src/assets/images/doctor tru.png')",

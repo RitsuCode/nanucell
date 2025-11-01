@@ -1,18 +1,19 @@
 <template>
-  <section id="products" class="py-12 bg-white">
+  <section id="products" class="py-8 md:py-12 bg-white">
     <div class="container mx-auto px-4">
-      <h2 class="text-3xl font-bold text-purple-800 mb-6">Shop More Nanucell Products!</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-purple-800 mb-6 text-center md:text-left">Shop More Nanucell Products!</h2>
 
-      <div v-if="loading" class="text-gray-500">Loading products...</div>
-      <div v-else-if="products.length === 0" class="text-gray-500">No product images found in src/assets/images/products</div>
+      <div v-if="loading" class="text-gray-500 text-center py-8">Loading products...</div>
+      <div v-else-if="products.length === 0" class="text-gray-500 text-center py-8">No product images found in src/assets/images/products</div>
 
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div v-else class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         <article
           v-for="(product, idx) in products"
           :key="idx"
-          class="bg-white rounded-md p-3 shadow-sm flex flex-col"
+          class="bg-white rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col"
         >
-          <div class="w-full h-48 flex items-center justify-center bg-gray-50 rounded shadow-md overflow-hidden">
+          <!-- Product Image -->
+          <div class="w-full h-32 sm:h-40 md:h-48 flex items-center justify-center bg-gray-50 rounded-lg shadow-sm overflow-hidden p-2">
             <img
               :src="product.src"
               :alt="product.name"
@@ -21,17 +22,21 @@
             />
           </div>
 
-          <h3 class="mt-3 text-purple-800 font-semibold break-words">{{ product.name }}</h3>
-          <p class="text-sm text-gray-500">{{ product.intake }}</p>
+          <!-- Product Info -->
+          <div class="mt-2 md:mt-3 flex-1 flex flex-col">
+            <h3 class="text-sm md:text-lg font-semibold text-purple-800 break-words line-clamp-2">{{ product.name }}</h3>
+            <p class="text-xs text-gray-500 mt-1">{{ product.intake }}</p>
 
-          <div class="mt-3 flex items-center justify-between">
-            <div class="text-lg font-bold text-gray-800">{{ product.price }}</div>
-            <button
-              class="bg-purple-800 text-white text-sm px-3 py-1 rounded transition hover:bg-purple-700 active:scale-95"
-              type="button"
-            >
-              Add to Cart
-            </button>
+            <!-- Price and Button -->
+            <div class="mt-2 md:mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+              <div class="text-sm md:text-lg font-bold text-gray-800">{{ product.price }}</div>
+              <button
+                class="bg-purple-800 text-white text-xs md:text-sm px-2 py-1 md:px-4 md:py-2 rounded transition hover:bg-purple-700 active:scale-95 whitespace-nowrap flex-shrink-0 w-full sm:w-auto mt-1 sm:mt-0"
+                type="button"
+              >
+                Add to Cart
+              </button>
+            </div>
           </div>
         </article>
       </div>
@@ -126,5 +131,11 @@ try {
 
 <style scoped>
 /* keep product name wrapping neat */
-h3 { word-wrap: break-word; }
+h3 { 
+  word-wrap: break-word; 
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

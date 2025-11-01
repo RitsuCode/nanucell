@@ -1,21 +1,23 @@
 <template>
-  <section class="py-12 bg-white">
-    <div class="container mx-auto px-4 py-4 shadow-lg">
-      <div class="flex flex-col lg:flex-row items-start gap-8">
-        <!-- Left: single Doctors PNG (takes 2/3 on large screens) -->
-        <div class="w-full lg:w-2/3 h-96 p-10 mt-10 flex items-center justify-center">
-          <img :src="doctorsImg" alt="Doctors" class="w-full  object-contain" />
+  <section class=" bg-white">
+    <div class="container mx-auto px-4  shadow-lg rounded-lg">
+      <div class="flex flex-col lg:flex-row items-center gap-6 md:gap-8">
+        <!-- Left: Doctors Image - Full width on mobile, 2/3 on desktop -->
+        <div class="w-full lg:w-2/3 md:p-6 flex items-center justify-center order-1">
+          <img :src="doctorsImg" alt="Doctors" class="w-full max-w-md lg:max-w-full object-contain" />
         </div>
 
-        <!-- Right: Video (takes 1/3 on large screens) -->
-        <div class="w-full lg:w-1/3 flex items-start">
-          <iframe
-              class="w-full aspect-[4/5] rounded-lg"
+        <!-- Right: Video - Full width on mobile, 1/3 on desktop -->
+        <div class="w-full lg:w-1/3 flex items-center justify-center order-2">
+          <div class="w-full max-w-sm lg:max-w-full">
+            <iframe
+              class="w-full aspect-[4/5] lg:aspect-[4/5] rounded-lg shadow-lg"
               :src="docVideo"
               allow="autoplay; encrypted-media"
               allowfullscreen
-              style="max-height: calc(100vh - 120px); border: none;"
+              style="border: none;"
             ></iframe>
+          </div>
         </div>
       </div>
     </div>
@@ -30,8 +32,16 @@ const docVideo = 'https://drive.google.com/file/d/1ZpxrrVY3D_FmgksI4fmDCsYaGSun8
 </script>
 
 <style scoped>
-/* keep image aspect and responsive spacing */
+/* Responsive image sizing */
 @media (max-width: 1024px) {
-  img.object-contain { max-width: 520px; }
+  img.object-contain { 
+    max-width: 400px; 
+  }
+}
+
+@media (max-width: 768px) {
+  img.object-contain { 
+    max-width: 320px; 
+  }
 }
 </style>
