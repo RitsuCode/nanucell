@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
 
           <div class="space-y-2">
             <div v-for="(item, idx) in order.items" :key="idx" class="flex gap-2">
-              <input v-model="item.product" type="text" placeholder="Product name / SKU" class="flex-1 border border-gray-200 rounded-lg px-3 py-2" />
+              <input v-model="item.product" type="text" placeholder="Product name" class="flex-1 border border-gray-200 rounded-lg px-3 py-2" />
               <input v-model.number="item.qty" type="number" min="1" class="w-24 border border-gray-200 rounded-lg px-3 py-2" />
               <button v-if="order.items.length > 1" type="button" @click="removeItem(idx)" class="text-red-600 px-2 rounded hover:bg-red-50">Remove</button>
             </div>
@@ -213,14 +213,6 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Preferred delivery date</label>
-            <input v-model="order.preferred_date" type="date" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Preferred time</label>
-            <input v-model="order.preferred_time" type="time" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2" />
-          </div>
         </div>
 
         <div>
