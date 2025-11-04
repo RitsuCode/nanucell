@@ -1,5 +1,6 @@
 <script setup>
-import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, toRaw, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useCartStore } from './../stores/cart.js'
 
 /**
  * Emits:
@@ -9,6 +10,7 @@ import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from 'vue'
 const emit = defineEmits(['close', 'submit'])
 
 const nameInput = ref(null)
+const cartStore = useCartStore()
 
 const order = reactive({
   name: '',
@@ -16,12 +18,38 @@ const order = reactive({
   contact: '',
   address: { street: '', city: '', province: '', postal: '' },
   delivery_instructions: '',
-  items: [{ product: '', qty: 1 }],
+  items: [],
   preferred_date: '',
   preferred_time: '',
   payment_method: 'cash',
   accept_terms: false
 })
+
+// Sync modal items with cart store
+function syncCartToModal() {
+  order.items = cartStore.cartItems.map(item => ({
+    product: item.name,
+    qty: item.qty
+  }))
+}
+
+// Sync modal changes back to cart store
+function syncModalToCart() {
+  // Clear the cart first
+  cartStore.clearCart()
+  
+  // Add all items from modal back to cart with their quantities
+  order.items.forEach(item => {
+    if (item.product && item.qty > 0) {
+      cartStore.addToCart({
+        name: item.product,
+        qty: item.qty, // Make sure to pass the quantity
+        price: '', // Price not needed for cart count
+        intake: '' // Intake not needed for cart count
+      })
+    }
+  })
+}
 
 const errors = reactive({
   name: '', email: '', contact: '', address: '', items: '', accept_terms: ''
@@ -33,10 +61,32 @@ const contactRE = /^[\d+\s\-()]{7,20}$/
 function addItem() {
   order.items.push({ product: '', qty: 1 })
   errors.items = ''
+  // Don't sync to cart yet - wait for user to fill in product and quantity
 }
+
 function removeItem(i) {
-  if (order.items.length > 1) order.items.splice(i, 1)
+  if (order.items.length > 1) {
+    order.items.splice(i, 1)
+    // Sync to cart immediately when removing items
+    syncModalToCart()
+  }
 }
+
+// Watch for quantity changes and sync to cart
+watch(() => order.items.map(item => item.qty), () => {
+  // Debounce the sync to avoid too many updates
+  setTimeout(() => {
+    syncModalToCart()
+  }, 100)
+}, { deep: true })
+
+// Watch for product changes and sync to cart
+watch(() => order.items.map(item => item.product), () => {
+  // Debounce the sync to avoid too many updates
+  setTimeout(() => {
+    syncModalToCart()
+  }, 100)
+}, { deep: true })
 
 function validate() {
   let valid = true
@@ -49,7 +99,7 @@ function validate() {
     errors.address = 'Please provide street, city, and province'; valid = false
   }
   const badItem = order.items.find(i => !i.product.trim() || !Number.isFinite(i.qty) || i.qty < 1)
-  if (badItem) { errors.items = 'Provide product name and quantity (>=1) for each item'; valid = false }
+  if (badItem) { errors.items = 'Provide product and quantity (>=1) for each item'; valid = false }
   if (!order.accept_terms) { errors.accept_terms = 'You must agree to be contacted'; valid = false }
 
   return valid
@@ -58,12 +108,14 @@ function validate() {
 const submitting = ref(false)
 const successMessage = ref('')
 
+// Add this to your submitOrder function in ShopNowModal.vue
 async function submitOrder() {
   if (!validate()) return
 
   submitting.value = true
 
   const payload = {
+    id: 'NAN' + Date.now(), // Generate unique order ID
     name: order.name.trim(),
     email: order.email.trim(),
     contact: order.contact.trim(),
@@ -77,13 +129,21 @@ async function submitOrder() {
     items: order.items.map(i => ({ product: i.product.trim(), qty: Number(i.qty) })),
     preferred_date: order.preferred_date || null,
     preferred_time: order.preferred_time || null,
-    payment_method: order.payment_method
+    payment_method: order.payment_method,
+    status: 'pending',
+    date: new Date().toISOString()
   }
 
-  // Send the payload to parent to handle (server-side POST, storage, etc.)
+  // Store order in localStorage
+  const existingOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
+  existingOrders.push(payload)
+  localStorage.setItem('nanucellOrders', JSON.stringify(existingOrders))
+
   emit('submit', toRaw(payload))
 
-  // UX: quick success feedback then close
+  // Clear cart after successful order
+  cartStore.clearCart()
+
   successMessage.value = 'Order submitted — thank you!'
   setTimeout(() => {
     successMessage.value = ''
@@ -96,22 +156,24 @@ async function submitOrder() {
 function resetForm() {
   order.name = ''; order.email = ''; order.contact = ''
   order.address = { street: '', city: '', province: '', postal: '' }
-  order.delivery_instructions = ''; order.items = [{ product: '', qty: 1 }]
+  order.delivery_instructions = ''; order.items = []
   order.preferred_date = ''; order.preferred_time = ''; order.payment_method = 'cash'
   order.accept_terms = false
   Object.keys(errors).forEach(k => (errors[k] = ''))
 }
 
-/* Accessibility & UX: lock body scroll, focus first input, escape key */
+/* Accessibility & UX */
 function onKeyDown(e) {
   if (e.key === 'Escape') emit('close')
 }
 
 onMounted(() => {
-  // lock background scroll while modal open
   document.body.style.overflow = 'hidden'
   window.addEventListener('keydown', onKeyDown)
-  // focus first input
+  
+  // Initialize items from cart when modal opens
+  syncCartToModal()
+  
   setTimeout(() => {
     if (nameInput.value && typeof nameInput.value.focus === 'function') nameInput.value.focus()
   }, 50)
@@ -135,7 +197,7 @@ onBeforeUnmount(() => {
 
     <!-- card -->
     <div
-      class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-fade-in max-h-[90vh] overflow-y-auto z-10 modal-scroll"
+      class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 animate-fade-in max-h-[90vh] overflow-y-auto z-10 modal-scroll"
       role="document"
       aria-labelledby="order-title"
     >
@@ -149,7 +211,15 @@ onBeforeUnmount(() => {
       </button>
 
       <h2 id="order-title" class="text-2xl font-bold text-[rgb(105,30,104)] mb-1 text-center">Place Your Order</h2>
-      <p class="text-sm text-gray-500 text-center mb-4">We’ll contact you to confirm details</p>
+      <p class="text-sm text-gray-500 text-center mb-4">We'll contact you to confirm details</p>
+
+      <!-- Cart Summary -->
+      <div v-if="order.items.length > 0" class="mb-4 p-3 bg-gray-50 rounded-lg">
+        <h3 class="font-semibold text-gray-700 mb-2">Your Cart ({{ cartStore.getTotalItems() }} item{{ cartStore.getTotalItems() !== 1 ? 's' : '' }})</h3>
+        <div v-for="(item, index) in order.items" :key="index" class="flex justify-between text-sm py-1">
+          <span>{{ item.product }} × {{ item.qty }}</span>
+        </div>
+      </div>
 
       <form @submit.prevent="submitOrder" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -196,6 +266,7 @@ onBeforeUnmount(() => {
           <p v-if="errors.address" class="text-xs text-red-600 mt-1">{{ errors.address }}</p>
         </div>
 
+        <!-- Order items with dropdown -->
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-sm font-medium text-gray-700">Order items</label>
@@ -204,15 +275,25 @@ onBeforeUnmount(() => {
 
           <div class="space-y-2">
             <div v-for="(item, idx) in order.items" :key="idx" class="flex gap-2">
-              <input v-model="item.product" type="text" placeholder="Product name" class="flex-1 border border-gray-200 rounded-lg px-3 py-2" />
+              <select v-model="item.product" class="flex-1 border border-gray-200 rounded-lg px-3 py-2">
+                <option disabled value="">Select a product</option>
+                <option class="font-semibold">Ultima Stem Plus</option>
+                <option class="font-semibold">Ultima Stem Plus Business Package</option>
+                <option class="font-semibold">Ultima Stem Plus Executive Package</option>
+                <option class="font-semibold">Ultima Stem Plus Elite Package</option>
+                <option>BerryOrac</option>
+                <option>Berberine</option>
+                <option>Bloom Gluta</option>
+                <option>Equi C</option>
+                <option>Nucleanse</option>
+                <option>Spirulina</option>
+                <option>Carvacrol</option>
+              </select>
               <input v-model.number="item.qty" type="number" min="1" class="w-24 border border-gray-200 rounded-lg px-3 py-2" />
               <button v-if="order.items.length > 1" type="button" @click="removeItem(idx)" class="text-red-600 px-2 rounded hover:bg-red-50">Remove</button>
             </div>
           </div>
           <p v-if="errors.items" class="text-xs text-red-600 mt-1">{{ errors.items }}</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         </div>
 
         <div>
@@ -248,6 +329,5 @@ onBeforeUnmount(() => {
 }
 .animate-fade-in { animation: fade-in 180ms ease-out; }
 
-/* smooth momentum when scrolling inside modal on mobile */
 .modal-scroll { -webkit-overflow-scrolling: touch; }
 </style>

@@ -31,7 +31,10 @@
             <li>• Lifetime membership</li>
             <li>• Get 25% discount on all products</li>
           </ul>
-          <button class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg">
+          <button 
+            @click="addBusinessPackage"
+            class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg"
+          >
             BUY NOW
           </button>
         </div>
@@ -51,7 +54,10 @@
             <li>• Lifetime membership</li>
             <li>• Get 25% discount on all products</li>
           </ul>
-          <button class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg">
+          <button 
+            @click="addExecutivePackage"
+            class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg"
+          >
             BUY NOW
           </button>
         </div>
@@ -70,7 +76,10 @@
             <li>• Lifetime membership</li>
             <li>• Get 25% discount on all products</li>
           </ul>
-          <button class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg">
+          <button 
+            @click="addElitePackage"
+            class="w-full bg-yellow-400 text-white py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 md:hover:scale-110 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-base md:text-lg"
+          >
             BUY NOW
           </button>
         </div>
@@ -79,9 +88,45 @@
   </section>
 </template>
 
-<script>
-export default {
-  name: 'Packages'
+<script setup>
+import { useCartStore } from './../stores/cart.js'
+
+const cartStore = useCartStore()
+
+const addBusinessPackage = () => {
+  const product = {
+    name: 'Ultima Stem Plus Business Package',
+    price: '11,940 PHP',
+    intake: '1 Bottle of Ultima Stem Plus + Lifetime membership + 25% discount',
+    qty: 1
+  }
+  
+  cartStore.addToCart(product)
+  console.log(`Added ${product.name} to cart`)
+}
+
+const addExecutivePackage = () => {
+  const product = {
+    name: 'Ultima Stem Plus Executive Package',
+    price: '47,760 PHP',
+    intake: '4 Bottles of Ultima Stem Plus + Lifetime membership + 25% discount',
+    qty: 1
+  }
+  
+  cartStore.addToCart(product)
+  console.log(`Added ${product.name} to cart`)
+}
+
+const addElitePackage = () => {
+  const product = {
+    name: 'Ultima Stem Plus Elite Package',
+    price: '149,000 PHP',
+    intake: '12 Bottles Ultima Stem Plus + 1 Berberine + 1 BerryOrac + Lifetime membership + 25% discount',
+    qty: 1
+  }
+  
+  cartStore.addToCart(product)
+  console.log(`Added ${product.name} to cart`)
 }
 </script>
 

@@ -31,7 +31,8 @@
             </span>
           </div>
 
-          <button class="bg-yellow-400 text-white px-8 py-4 rounded-lg text-2xl md:text-3xl font-bold 
+          <button @click="addToCart" 
+                  class="bg-yellow-400 text-white px-8 py-4 rounded-lg text-2xl md:text-3xl font-bold 
                        transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-yellow-500 active:scale-95 shadow-lg w-full max-w-xs lg:w-auto">
             BUY NOW
           </button>
@@ -41,9 +42,20 @@
   </section>
 </template>
 
-<script>
-export default {
-  name: 'BestSeller'
+<script setup>
+import { useCartStore } from './../stores/cart.js'
+
+const cartStore = useCartStore()
+
+const addToCart = () => {
+  const product = {
+    name: 'Ultima Stem Plus',
+    price: '₱11,940.00',
+    qty: 2
+  }
+  
+  cartStore.addToCart(product)
+  console.log(`Added ${product.name} to cart`)
 }
 </script>
 

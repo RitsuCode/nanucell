@@ -36,7 +36,10 @@
           <div class="flex flex-col sm:flex-row items-center gap-4 md:gap-6 mb-4">
             <!-- Left Side: Button only on mobile -->
             <div class="w-full sm:w-auto order-1">
-              <button class="bg-yellow-500 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-semibold text-lg md:text-xl w-full sm:w-auto">
+              <button 
+                @click="addToCart" 
+                class="bg-yellow-500 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-yellow-400 active:scale-95 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-semibold text-lg md:text-xl w-full sm:w-auto"
+              >
                 BUY NOW
               </button>
             </div>
@@ -64,8 +67,19 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'Hero'
+<script setup>
+import { useCartStore } from './../stores/cart.js'
+
+const cartStore = useCartStore()
+
+const addToCart = () => {
+  const product = {
+    name: 'Ultima Stem Plus',
+    price: '₱11,940.00',
+    qty: 1
+  }
+  
+  cartStore.addToCart(product)
+  console.log(`Added ${product.name} to cart`)
 }
 </script>

@@ -24,10 +24,10 @@
       <!-- Benefits Section with Video -->
       <div class="flex flex-col lg:flex-row gap-8">
         <!-- Video Section - Full width on mobile -->
-        <div class="w-full lg:w-1/3">
-          <div class="bg-gray-900 rounded-lg shadow-lg overflow-hidden">
+        <div class=" lg:w-1/3">
+          <div class="bg-gray-900 rounded-lg justify-items-center shadow-lg overflow-hidden">
             <iframe
-              class="w-full aspect-video lg:aspect-[9/16] rounded-lg"
+              class="lg:w-3/5 aspect-video lg:aspect-[9/16] "
               :src="embedUrl"
               allow="autoplay; encrypted-media"
               allowfullscreen

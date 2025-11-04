@@ -19,26 +19,46 @@
       <li>
         <a href="#contacts" :class="linkClass('contacts')" @click.prevent="scrollToSection('contacts')">Contacts</a>
       </li>
+      <li>
+        <button 
+          @click="$emit('show-admin')" 
+          class="hover:text-yellow-400 font-medium text-lg flex items-center gap-1"
+        >
+          Admin
+        </button>
+      </li>
 
-      <!-- Shop Now Button -->
-      <div class="bg-purple-900 p-3 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-xl hover:bg-purple-800 active:scale-95">
-        <li>
-          <button @click="showShopModal = true" class="text-yellow-300 font-semibold animate-pulse hover:animate-none">
-            Shop Now!
-          </button>
-        </li>
+      <!-- Shop Now Button with Cart Count -->
+      <div class="relative">
+        <div class="bg-purple-900 p-3 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-xl hover:bg-purple-800 active:scale-95">
+          <li>
+            <button @click="showShopModal = true" class="text-yellow-300 font-semibold hover:animate-none flex items-center gap-2">
+              Shop Now!
+              <!-- Cart Item Count Badge -->
+              <span v-if="cartStore.getTotalItems() > 0" class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
+                {{ cartStore.getTotalItems() }}
+              </span>
+            </button>
+          </li>
+        </div>
       </div>
     </ul>
 
     <!-- Mobile Menu Button -->
     <div class="md:hidden flex items-center space-x-4">
-      <!-- Mobile Shop Now Button -->
-      <button 
-        @click="showShopModal = true" 
-        class="bg-purple-900 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-purple-800 active:scale-95"
-      >
-        <span class="text-yellow-300 font-semibold text-sm">Shop</span>
-      </button>
+      <!-- Mobile Shop Now Button with Cart Count -->
+      <div class="relative">
+        <button 
+          @click="showShopModal = true" 
+          class="bg-purple-900 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-purple-800 active:scale-95 relative"
+        >
+          <span class="text-yellow-300 font-semibold text-sm">Shop</span>
+          <!-- Cart Item Count Badge -->
+          <span v-if="cartStore.getTotalItems() > 0" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            {{ cartStore.getTotalItems() }}
+          </span>
+        </button>
+      </div>
       
       <!-- Hamburger Menu -->
       <button 
@@ -118,15 +138,20 @@
               Contacts
             </a>
           </li>
+          
         </ul>
 
-        <!-- Mobile Shop Now Button -->
-        <div class="mt-8">
+        <!-- Mobile Shop Now Button with Cart Count -->
+        <div class="mt-8 relative">
           <button 
             @click="handleMobileShopClick"
-            class="w-full bg-purple-900 text-yellow-300 font-semibold py-4 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-purple-800 active:scale-95 text-lg shadow-lg"
+            class="w-full bg-purple-900 text-yellow-300 font-semibold py-4 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-purple-800 active:scale-95 text-lg shadow-lg flex items-center justify-center gap-2"
           >
             Shop Now!
+            <!-- Cart Item Count Badge -->
+            <span v-if="cartStore.getTotalItems() > 0" class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
+              {{ cartStore.getTotalItems() }}
+            </span>
           </button>
         </div>
       </div>
@@ -146,10 +171,14 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import ShopNowModal from './ShopNowModal.vue'
+import { useCartStore } from './../stores/cart.js'
 
 const active = ref('')
 const showShopModal = ref(false)
 const isMobileMenuOpen = ref(false)
+
+// Initialize cart store
+const cartStore = useCartStore()
 
 function handleShopSubmit(payload) {
   // Example: you can POST to your Django endpoint here.
