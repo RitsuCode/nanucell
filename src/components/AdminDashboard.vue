@@ -6,9 +6,18 @@
         <div class="flex justify-between items-center py-4">
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p class="text-sm text-gray-500">Order Management System</p>
+            <p class="text-sm text-gray-500">Multi-Device Order Management</p>
           </div>
           <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <div :class="[
+                'w-3 h-3 rounded-full',
+                isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+              ]"></div>
+              <span class="text-sm text-gray-600">
+                {{ isConnected ? 'Live Connected' : 'Offline' }}
+              </span>
+            </div>
             <span class="text-sm text-gray-600">
               Last login: {{ formatTime(lastLoginTime) }}
             </span>
@@ -87,7 +96,7 @@
       <!-- Orders Table -->
       <div class="bg-white shadow rounded-lg">
         <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 class="text-lg font-medium text-gray-900">Recent Orders</h2>
+          <h2 class="text-lg font-medium text-gray-900">All Orders (Live)</h2>
           <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <!-- Status Filter -->
             <div class="flex items-center gap-2">
@@ -105,18 +114,25 @@
             
             <div class="flex gap-2">
               <button 
-                @click="refreshOrders"
-                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                @click="exportOrders"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                Refresh
+                Export
               </button>
             </div>
           </div>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- Loading State -->
+        <div v-if="loading" class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p class="mt-4 text-sm text-gray-600">Loading orders from cloud database...</p>
+        </div>
+
+        <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -149,7 +165,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="order in sortedOrders" :key="order.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  #{{ order.id }}
+                  #{{ order.id.slice(-6) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div>
@@ -207,7 +223,7 @@
                   </select>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDateTime(order.date) }}
+                  {{ formatDateTime(order.date || order.createdAt) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
@@ -226,7 +242,7 @@
         </div>
         
         <!-- Empty State -->
-        <div v-if="filteredOrders.length === 0" class="text-center py-12">
+        <div v-if="!loading && filteredOrders.length === 0" class="text-center py-12">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
@@ -248,13 +264,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { 
+  getOrders, 
+  updateOrder, 
+  deleteOrder, 
+  subscribeToOrders 
+} from '../firebase'
 
 const emit = defineEmits(['logout'])
 
 const orders = ref([])
 const lastLoginTime = ref('')
 const statusFilter = ref('all')
+const loading = ref(true)
+const isConnected = ref(true)
+const unsubscribe = ref(null)
 
 // Computed properties
 const filteredOrders = computed(() => {
@@ -278,7 +303,11 @@ const uniqueCustomers = computed(() => {
 })
 
 const sortedOrders = computed(() => {
-  return [...filteredOrders.value].sort((a, b) => new Date(b.date) - new Date(a.date))
+  return [...filteredOrders.value].sort((a, b) => {
+    const dateA = new Date(a.date || a.createdAt)
+    const dateB = new Date(b.date || b.createdAt)
+    return dateB - dateA
+  })
 })
 
 // Methods
@@ -312,67 +341,90 @@ const formatTime = (dateString) => {
 }
 
 const handleLogout = () => {
+  // Clean up Firebase listener
+  if (unsubscribe.value) {
+    unsubscribe.value()
+  }
+  
   localStorage.removeItem('adminAuthenticated')
   localStorage.removeItem('adminLoginTime')
   emit('logout')
 }
 
-const refreshOrders = () => {
-  loadOrdersFromStorage()
-}
-
-const updateOrderStatus = (order) => {
-  // Save updated status to localStorage
-  const storedOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
-  const updatedOrders = storedOrders.map(storedOrder => 
-    storedOrder.id === order.id ? { ...storedOrder, status: order.status } : storedOrder
-  )
-  localStorage.setItem('nanucellOrders', JSON.stringify(updatedOrders))
-}
-
-const confirmDeleteOrder = (order) => {
-  if (confirm(`Are you sure you want to delete order #${order.id}? This action cannot be undone.`)) {
-    deleteOrder(order)
+const updateOrderStatus = async (order) => {
+  try {
+    await updateOrder(order.id, { status: order.status })
+  } catch (error) {
+    console.error('Error updating order status:', error)
+    alert('Failed to update order status. Please try again.')
   }
 }
 
-const deleteOrder = (order) => {
-  // Remove order from localStorage
-  const storedOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
-  const updatedOrders = storedOrders.filter(storedOrder => storedOrder.id !== order.id)
-  localStorage.setItem('nanucellOrders', JSON.stringify(updatedOrders))
-  
-  // Update local orders array
-  orders.value = orders.value.filter(o => o.id !== order.id)
+const confirmDeleteOrder = (order) => {
+  if (confirm(`Are you sure you want to delete order #${order.id.slice(-6)}? This action cannot be undone.`)) {
+    deleteOrderFromFirebase(order)
+  }
 }
 
-const loadOrdersFromStorage = () => {
-  const storedOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
+const deleteOrderFromFirebase = async (order) => {
+  try {
+    await deleteOrder(order.id)
+  } catch (error) {
+    console.error('Error deleting order:', error)
+    alert('Failed to delete order. Please try again.')
+  }
+}
+
+const exportOrders = () => {
+  const csvContent = convertToCSV(orders.value)
+  const blob = new Blob([csvContent], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+
+const convertToCSV = (orders) => {
+  const headers = ['Order ID', 'Customer Name', 'Email', 'Contact', 'Address', 'Items', 'Total Items', 'Payment Method', 'Status', 'Date']
+  const rows = orders.map(order => [
+    order.id.slice(-6),
+    `"${order.name}"`,
+    order.email,
+    order.contact,
+    `"${order.address.street}, ${order.address.city}, ${order.address.province}"`,
+    `"${order.items.map(item => `${item.product} × ${item.qty}`).join(', ')}"`,
+    getTotalItems(order.items),
+    order.payment_method,
+    order.status,
+    formatDateTime(order.date || order.createdAt)
+  ])
   
-  // Transform stored orders to match our format
-  orders.value = storedOrders.map(order => ({
-    id: order.id,
-    name: order.name,
-    email: order.email,
-    contact: order.contact,
-    address: order.address,
-    items: order.items,
-    payment_method: order.payment_method,
-    preferred_date: order.preferred_date,
-    preferred_time: order.preferred_time,
-    delivery_instructions: order.delivery_instructions,
-    status: order.status || 'pending',
-    date: order.date || new Date().toISOString()
-  }))
+  return [headers, ...rows].map(row => row.join(',')).join('\n')
+}
+
+const initializeFirebaseListener = () => {
+  unsubscribe.value = subscribeToOrders((firebaseOrders) => {
+    orders.value = firebaseOrders
+    loading.value = false
+    isConnected.value = true
+  })
 }
 
 // Check authentication and load orders on component mount
 onMounted(() => {
   const loginTime = localStorage.getItem('adminLoginTime')
   lastLoginTime.value = loginTime
-  loadOrdersFromStorage()
   
-  // Set up interval to refresh orders every 30 seconds
-  setInterval(loadOrdersFromStorage, 30000)
+  // Initialize Firebase real-time listener
+  initializeFirebaseListener()
+})
+
+onUnmounted(() => {
+  // Clean up Firebase listener when component is destroyed
+  if (unsubscribe.value) {
+    unsubscribe.value()
+  }
 })
 </script>

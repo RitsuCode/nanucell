@@ -14,24 +14,38 @@
 
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-purple-900 mb-2">Admin Portal</h1>
-        <p class="text-gray-600">Enter your password to access the admin dashboard</p>
+        <p class="text-gray-600">Sign in with your admin account</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-6">
         <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+            Admin Email
+          </label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            required
+            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 border-gray-300"
+            placeholder=""
+            autocomplete="email"
+          />
+        </div>
+
+        <div>
           <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-            Admin Password
+            Password
           </label>
           <input
             id="password"
             v-model="password"
             type="password"
             required
-            :class="[
-              'w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200',
+            :class="[ 'w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200',
               error ? 'border-red-500 bg-red-50' : 'border-gray-300'
             ]"
-            placeholder="Enter admin password"
+            placeholder="Enter your admin password"
             autocomplete="current-password"
           />
           <p v-if="error" class="text-red-500 text-sm mt-2 flex items-center">
@@ -45,8 +59,7 @@
         <button
           type="submit"
           :disabled="loading"
-          :class="[
-            'w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center',
+          :class="[ 'w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center',
             loading 
               ? 'bg-purple-400 cursor-not-allowed' 
               : 'bg-purple-600 hover:bg-purple-700 active:scale-95'
@@ -56,7 +69,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {{ loading ? 'Authenticating...' : 'Enter Admin Portal' }}
+          {{ loading ? 'Signing in...' : 'Enter Admin Portal' }}
         </button>
       </form>
 
@@ -67,7 +80,7 @@
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
           </svg>
           <div class="text-sm text-yellow-700">
-            <strong>Security Notice:</strong> This area is restricted to authorized personnel only.
+            <strong>Security Notice:</strong> Only authorized admin accounts can modify data.
           </div>
         </div>
       </div>
@@ -77,40 +90,33 @@
 
 <script setup>
 import { ref } from 'vue'
+import { loginAdmin } from '../firebase/index.js'
 
 const emit = defineEmits(['login', 'back'])
 
+const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-// Change this password to whatever you want
-const ADMIN_PASSWORD = 'nanucell2024'
-
 const handleLogin = async () => {
-  if (!password.value.trim()) {
-    error.value = 'Please enter a password'
+  if (!email.value.trim() || !password.value.trim()) {
+    error.value = 'Please enter both email and password'
     return
   }
 
   loading.value = true
   error.value = ''
 
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 800))
-
-  if (password.value === ADMIN_PASSWORD) {
-    // Store authentication state
+  try {
+    await loginAdmin(email.value, password.value)
     localStorage.setItem('adminAuthenticated', 'true')
-    localStorage.setItem('adminLoginTime', new Date().toISOString())
-    
-    // Emit login event
     emit('login')
-  } else {
-    error.value = 'Invalid password. Please try again.'
-    password.value = ''
+  } catch (err) {
+    console.error(err)
+    error.value = 'Invalid email or password.'
+  } finally {
+    loading.value = false
   }
-
-  loading.value = false
 }
 </script>

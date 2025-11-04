@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, toRaw, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useCartStore } from './../stores/cart.js'
+import { addOrder } from './../firebase' // Import Firebase function
 
 /**
  * Emits:
@@ -107,15 +108,16 @@ function validate() {
 
 const submitting = ref(false)
 const successMessage = ref('')
+const errorMessage = ref('')
 
-// Add this to your submitOrder function in ShopNowModal.vue
+// Updated submitOrder function with Firebase integration
 async function submitOrder() {
   if (!validate()) return
 
   submitting.value = true
+  errorMessage.value = ''
 
   const payload = {
-    id: 'NAN' + Date.now(), // Generate unique order ID
     name: order.name.trim(),
     email: order.email.trim(),
     contact: order.contact.trim(),
@@ -134,23 +136,40 @@ async function submitOrder() {
     date: new Date().toISOString()
   }
 
-  // Store order in localStorage
-  const existingOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
-  existingOrders.push(payload)
-  localStorage.setItem('nanucellOrders', JSON.stringify(existingOrders))
+  try {
+    // Save to Firebase
+    const orderId = await addOrder(payload)
+    
+    // Also store in localStorage as backup
+    const existingOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
+    existingOrders.push({ ...payload, id: orderId })
+    localStorage.setItem('nanucellOrders', JSON.stringify(existingOrders))
 
-  emit('submit', toRaw(payload))
+    emit('submit', toRaw(payload))
 
-  // Clear cart after successful order
-  cartStore.clearCart()
+    // Clear cart after successful order
+    cartStore.clearCart()
 
-  successMessage.value = 'Order submitted — thank you!'
-  setTimeout(() => {
-    successMessage.value = ''
+    successMessage.value = 'Order submitted successfully! We\'ll contact you soon.'
+    
+    // Reset form and close modal after success
+    setTimeout(() => {
+      successMessage.value = ''
+      submitting.value = false
+      resetForm()
+      emit('close')
+    }, 2000)
+    
+  } catch (error) {
+    console.error('Error submitting order:', error)
+    errorMessage.value = 'Failed to submit order. Please try again or contact support.'
     submitting.value = false
-    emit('close')
-    resetForm()
-  }, 900)
+    
+    // Auto-hide error message after 5 seconds
+    setTimeout(() => {
+      errorMessage.value = ''
+    }, 5000)
+  }
 }
 
 function resetForm() {
@@ -213,6 +232,16 @@ onBeforeUnmount(() => {
       <h2 id="order-title" class="text-2xl font-bold text-[rgb(105,30,104)] mb-1 text-center">Place Your Order</h2>
       <p class="text-sm text-gray-500 text-center mb-4">We'll contact you to confirm details</p>
 
+      <!-- Success Message -->
+      <div v-if="successMessage" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <p class="text-green-700 text-sm font-medium">{{ successMessage }}</p>
+      </div>
+
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-700 text-sm font-medium">{{ errorMessage }}</p>
+      </div>
+
       <!-- Cart Summary -->
       <div v-if="order.items.length > 0" class="mb-4 p-3 bg-gray-50 rounded-lg">
         <h3 class="font-semibold text-gray-700 mb-2">Your Cart ({{ cartStore.getTotalItems() }} item{{ cartStore.getTotalItems() !== 1 ? 's' : '' }})</h3>
@@ -259,9 +288,9 @@ onBeforeUnmount(() => {
           <input v-model="order.address.street" type="text" placeholder="Street, house/unit no." required
             class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
-            <input v-model="order.address.city" type="text" placeholder="City" class="border border-gray-200 rounded-lg px-3 py-2" />
-            <input v-model="order.address.province" type="text" placeholder="Province" class="border border-gray-200 rounded-lg px-3 py-2" />
-            <input v-model="order.address.postal" type="text" placeholder="Postal (optional)" class="border border-gray-200 rounded-lg px-3 py-2" />
+            <input v-model="order.address.city" type="text" placeholder="City" required class="border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
+            <input v-model="order.address.province" type="text" placeholder="Province" required class="border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
+            <input v-model="order.address.postal" type="text" placeholder="Postal (optional)" class="border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
           </div>
           <p v-if="errors.address" class="text-xs text-red-600 mt-1">{{ errors.address }}</p>
         </div>
@@ -275,7 +304,7 @@ onBeforeUnmount(() => {
 
           <div class="space-y-2">
             <div v-for="(item, idx) in order.items" :key="idx" class="flex gap-2">
-              <select v-model="item.product" class="flex-1 border border-gray-200 rounded-lg px-3 py-2">
+              <select v-model="item.product" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none">
                 <option disabled value="">Select a product</option>
                 <option class="font-semibold">Ultima Stem Plus</option>
                 <option class="font-semibold">Ultima Stem Plus Business Package</option>
@@ -289,8 +318,8 @@ onBeforeUnmount(() => {
                 <option>Spirulina</option>
                 <option>Carvacrol</option>
               </select>
-              <input v-model.number="item.qty" type="number" min="1" class="w-24 border border-gray-200 rounded-lg px-3 py-2" />
-              <button v-if="order.items.length > 1" type="button" @click="removeItem(idx)" class="text-red-600 px-2 rounded hover:bg-red-50">Remove</button>
+              <input v-model.number="item.qty" type="number" min="1" class="w-24 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
+              <button v-if="order.items.length > 1" type="button" @click="removeItem(idx)" class="text-red-600 px-2 rounded hover:bg-red-50 transition-colors duration-200">Remove</button>
             </div>
           </div>
           <p v-if="errors.items" class="text-xs text-red-600 mt-1">{{ errors.items }}</p>
@@ -298,24 +327,30 @@ onBeforeUnmount(() => {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">Delivery instructions (optional)</label>
-          <textarea v-model="order.delivery_instructions" rows="2" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2"></textarea>
+          <textarea v-model="order.delivery_instructions" rows="2" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none"></textarea>
         </div>
 
         <div class="flex items-start gap-3">
-          <input id="accept" v-model="order.accept_terms" type="checkbox" class="mt-1" />
+          <input id="accept" v-model="order.accept_terms" type="checkbox" class="mt-1 focus:ring-2 focus:ring-[rgb(105,30,104)] rounded" />
           <label for="accept" class="text-sm text-gray-700">I agree to be contacted regarding this order.</label>
         </div>
         <p v-if="errors.accept_terms" class="text-xs text-red-600 mt-1">{{ errors.accept_terms }}</p>
 
-        <div class="flex items-center gap-3">
-          <button type="button" @click="emit('close')" class="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
+        <div class="flex items-center gap-3 flex-wrap">
+          <button type="button" @click="emit('close')" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">Cancel</button>
 
-          <button type="submit" :disabled="submitting" class="px-4 py-2 bg-[rgb(105,30,104)] text-white rounded-lg font-semibold hover:bg-[rgb(125,40,124)] disabled:opacity-60">
+          <button type="submit" :disabled="submitting" class="px-4 py-2 bg-[rgb(105,30,104)] text-white rounded-lg font-semibold hover:bg-[rgb(125,40,124)] disabled:opacity-60 transition-colors duration-200 flex items-center gap-2">
             <span v-if="!submitting">Submit Order</span>
-            <span v-else>Submitting…</span>
+            <span v-else class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Submitting…
+            </span>
           </button>
 
-          <div class="ml-auto text-sm text-green-600" v-if="successMessage">{{ successMessage }}</div>
+          <div class="ml-auto text-sm text-green-600 font-medium" v-if="successMessage">{{ successMessage }}</div>
         </div>
       </form>
     </div>
