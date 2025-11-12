@@ -52,7 +52,6 @@ export default {
     Benefits,
     DoctorsSection,
     ProductsGrid,
-    BestSeller,
     Packages,
     CustomerReviews,
     VideoTestimonials,

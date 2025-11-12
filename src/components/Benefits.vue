@@ -24,11 +24,11 @@
       <!-- Benefits Section with Video -->
       <div class="flex flex-col lg:flex-row gap-8">
         <!-- Video Section - Full width on mobile -->
-        <div class=" lg:w-1/3">
-          <div class="bg-gray-900 rounded-lg justify-items-center shadow-lg overflow-hidden">
+        <div class=" lg:w-1/3 justify-center flex items-center">
+          <div class="w-full max-w-sm lg:max-w-full">
             <iframe
-              class="lg:w-3/5 aspect-video lg:aspect-[9/16] "
-              :src="embedUrl"
+              class="w-full aspect-[4/5] lg:aspect-[4/5] rounded-lg shadow-lg"
+              :src="docVideo"
               allow="autoplay; encrypted-media"
               allowfullscreen
               style="border: none;"
@@ -95,7 +95,7 @@ export default {
   name: 'Benefits',
   data() {
     return {
-      embedUrl: 'https://drive.google.com/file/d/1FkrJpFxGj4CvZfQr8Oh01oq1AcjcdT1g/preview'
+      docVideo: 'https://drive.google.com/file/d/1ZpxrrVY3D_FmgksI4fmDCsYaGSun8sPk/preview'
     }
   }
 }

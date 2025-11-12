@@ -33,7 +33,7 @@
           </p>
           
           <!-- Action Section - Split layout on mobile -->
-          <div class="flex flex-col sm:flex-row items-center gap-4 md:gap-6 mb-4">
+          <div class="flex flex-col sm:flex-row items-center sm:justify-center gap-4 md:gap-6 mb-4">
             <!-- Left Side: Button only on mobile -->
             <div class="w-full sm:w-auto order-1">
               <button 
@@ -45,7 +45,7 @@
             </div>
             
             <!-- Right Side: Price and Rating on mobile -->
-            <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-4 md:gap-6 order-2 sm:ml-auto">
+            <div class="w-full sm:w-auto flex justify-center flex-col sm:flex-row items-center gap-4 md:gap-6 order-2 ">
               <!-- Price Section -->
               <div class="flex flex-col items-center sm:items-start">
                 <span class="text-2xl md:text-3xl lg:text-4xl font-bold">₱11,940.00</span>

@@ -8,8 +8,8 @@
         </div>
 
         <!-- Right: Video - Full width on mobile, 1/3 on desktop -->
-        <div class="w-full lg:w-1/3 flex items-center justify-center order-2">
-          <div class="w-full max-w-sm lg:max-w-full">
+        <div class="w-full lg:w-1/3 flex items-center justify-center sm:w-3/4 bg-black rounded-xl order-2">
+          <div class="w-full max-w-sm lg:max-w-full sm:max-w-sm border-solid border-8 border-black rounded-lg shadow-lg overflow-hidden">
             <iframe
               class="w-full aspect-[4/5] lg:aspect-[4/5] rounded-lg shadow-lg"
               :src="docVideo"
@@ -28,7 +28,7 @@
 import doctorsImg from '../assets/images/Doctors.png'
 
 // Use the Google Drive link directly
-const docVideo = 'https://drive.google.com/file/d/1ZpxrrVY3D_FmgksI4fmDCsYaGSun8sPk/preview'
+const docVideo = 'https://drive.google.com/file/d/1FkrJpFxGj4CvZfQr8Oh01oq1AcjcdT1g/preview'
 </script>
 
 <style scoped>
