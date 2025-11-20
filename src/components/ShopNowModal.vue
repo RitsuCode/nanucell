@@ -1,13 +1,9 @@
 <script setup>
-import { ref, reactive, toRaw, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, toRaw, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useCartStore } from './../stores/cart.js'
-import { addOrder } from './../firebase' // Import Firebase function
+import { addOrder } from './../firebase'
+import { calculateOrderTotal, formatPrice, getProductPrice } from './../data/products.js'
 
-/**
- * Emits:
- *  - close: closes the modal
- *  - submit: (payload) - plain JS object with the order details
- */
 const emit = defineEmits(['close', 'submit'])
 
 const nameInput = ref(null)
@@ -26,11 +22,21 @@ const order = reactive({
   accept_terms: false
 })
 
+// New reactive variables for the next steps popup
+const showNextSteps = ref(false)
+const customerName = ref('')
+
+// Compute total price
+const orderTotal = computed(() => {
+  return calculateOrderTotal(order.items)
+})
+
 // Sync modal items with cart store
 function syncCartToModal() {
   order.items = cartStore.cartItems.map(item => ({
     product: item.name,
-    qty: item.qty
+    qty: item.qty,
+    price: item.price || getProductPrice(item.name)
   }))
 }
 
@@ -39,14 +45,14 @@ function syncModalToCart() {
   // Clear the cart first
   cartStore.clearCart()
   
-  // Add all items from modal back to cart with their quantities
+  // Add all items from modal back to cart with their quantities and prices
   order.items.forEach(item => {
     if (item.product && item.qty > 0) {
       cartStore.addToCart({
         name: item.product,
-        qty: item.qty, // Make sure to pass the quantity
-        price: '', // Price not needed for cart count
-        intake: '' // Intake not needed for cart count
+        qty: item.qty,
+        price: item.price || getProductPrice(item.product),
+        intake: ''
       })
     }
   })
@@ -60,30 +66,39 @@ const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const contactRE = /^[\d+\s\-()]{7,20}$/
 
 function addItem() {
-  order.items.push({ product: '', qty: 1 })
+  order.items.push({ product: '', qty: 1, price: 0 })
   errors.items = ''
-  // Don't sync to cart yet - wait for user to fill in product and quantity
 }
 
 function removeItem(i) {
   if (order.items.length > 1) {
     order.items.splice(i, 1)
-    // Sync to cart immediately when removing items
     syncModalToCart()
   }
 }
 
-// Watch for quantity changes and sync to cart
-watch(() => order.items.map(item => item.qty), () => {
-  // Debounce the sync to avoid too many updates
+// Update price when product changes
+function updateItemPrice(index) {
+  const item = order.items[index]
+  if (item.product) {
+    item.price = getProductPrice(item.product)
+  } else {
+    item.price = 0
+  }
+}
+
+// Watch for product changes and update prices
+watch(() => order.items.map(item => item.product), () => {
+  order.items.forEach((item, index) => {
+    updateItemPrice(index)
+  })
   setTimeout(() => {
     syncModalToCart()
   }, 100)
 }, { deep: true })
 
-// Watch for product changes and sync to cart
-watch(() => order.items.map(item => item.product), () => {
-  // Debounce the sync to avoid too many updates
+// Watch for quantity changes and sync to cart
+watch(() => order.items.map(item => item.qty), () => {
   setTimeout(() => {
     syncModalToCart()
   }, 100)
@@ -107,10 +122,8 @@ function validate() {
 }
 
 const submitting = ref(false)
-const successMessage = ref('')
 const errorMessage = ref('')
 
-// Updated submitOrder function with Firebase integration
 async function submitOrder() {
   if (!validate()) return
 
@@ -128,48 +141,47 @@ async function submitOrder() {
       postal: order.address.postal.trim()
     },
     delivery_instructions: order.delivery_instructions.trim(),
-    items: order.items.map(i => ({ product: i.product.trim(), qty: Number(i.qty) })),
+    items: order.items.map(i => ({ 
+      product: i.product.trim(), 
+      qty: Number(i.qty),
+      price: i.price 
+    })),
     preferred_date: order.preferred_date || null,
     preferred_time: order.preferred_time || null,
     payment_method: order.payment_method,
+    total: orderTotal.value,
     status: 'pending',
     date: new Date().toISOString()
   }
 
   try {
-    // Save to Firebase
     const orderId = await addOrder(payload)
     
-    // Also store in localStorage as backup
     const existingOrders = JSON.parse(localStorage.getItem('nanucellOrders') || '[]')
     existingOrders.push({ ...payload, id: orderId })
     localStorage.setItem('nanucellOrders', JSON.stringify(existingOrders))
 
     emit('submit', toRaw(payload))
-
-    // Clear cart after successful order
     cartStore.clearCart()
-
-    successMessage.value = 'Order submitted successfully! We\'ll contact you soon.'
-    
-    // Reset form and close modal after success
-    setTimeout(() => {
-      successMessage.value = ''
-      submitting.value = false
-      resetForm()
-      emit('close')
-    }, 2000)
+    customerName.value = order.name.trim()
+    showNextSteps.value = true
     
   } catch (error) {
     console.error('Error submitting order:', error)
     errorMessage.value = 'Failed to submit order. Please try again or contact support.'
     submitting.value = false
     
-    // Auto-hide error message after 5 seconds
     setTimeout(() => {
       errorMessage.value = ''
     }, 5000)
   }
+}
+
+function completeOrderProcess() {
+  resetForm()
+  showNextSteps.value = false
+  submitting.value = false
+  emit('close')
 }
 
 function resetForm() {
@@ -181,16 +193,20 @@ function resetForm() {
   Object.keys(errors).forEach(k => (errors[k] = ''))
 }
 
-/* Accessibility & UX */
 function onKeyDown(e) {
-  if (e.key === 'Escape') emit('close')
+  if (e.key === 'Escape') {
+    if (showNextSteps.value) {
+      completeOrderProcess()
+    } else {
+      emit('close')
+    }
+  }
 }
 
 onMounted(() => {
   document.body.style.overflow = 'hidden'
   window.addEventListener('keydown', onKeyDown)
   
-  // Initialize items from cart when modal opens
   syncCartToModal()
   
   setTimeout(() => {
@@ -209,13 +225,87 @@ onBeforeUnmount(() => {
     class="fixed inset-0 z-[1000] flex items-center justify-center p-4"
     aria-modal="true"
     role="dialog"
-    @click.self="emit('close')"
+    @click.self="showNextSteps ? completeOrderProcess() : emit('close')"
   >
-    <!-- overlay -->
     <div class="absolute inset-0 bg-black/50"></div>
 
-    <!-- card -->
+    <!-- Next Steps Popup -->
     <div
+      v-if="showNextSteps"
+      class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in z-20"
+      role="dialog"
+      aria-labelledby="next-steps-title"
+    >
+      <div class="text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+
+        <h2 id="next-steps-title" class="text-2xl font-bold text-[rgb(105,30,104)] mb-2">Order Submitted Successfully!</h2>
+        
+        <!-- Order Total in Next Steps -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+          <p class="text-lg font-bold text-purple-800">Order Total: {{ formatPrice(orderTotal) }}</p>
+        </div>
+
+        <p class="text-gray-600 mb-6">Thank you for your order. Here are the next steps:</p>
+
+        <div class="space-y-4 text-left mb-6">
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 w-6 h-6 bg-[rgb(105,30,104)] text-white rounded-full text-sm flex items-center justify-center mt-0.5">1</div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Send GCash Payment</h3>
+              <p class="text-sm text-gray-600 mt-1">
+                Send your payment of <strong class="text-[rgb(105,30,104)]">{{ formatPrice(orderTotal) }}</strong> to:<br>
+                <strong class="text-[rgb(105,30,104)]">0917 123 4567</strong><br>
+                Account Name: <strong>Nanucell Enterprises</strong>
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 w-6 h-6 bg-[rgb(105,30,104)] text-white rounded-full text-sm flex items-center justify-center mt-0.5">2</div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Email Your Receipt</h3>
+              <p class="text-sm text-gray-600 mt-1">
+                Send the payment receipt to:<br>
+                <strong class="text-[rgb(105,30,104)]">orders@nanucell.com</strong><br>
+                Subject: <strong>"{{ customerName }} Payment - {{ formatPrice(orderTotal) }}"</strong>
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 w-6 h-6 bg-[rgb(105,30,104)] text-white rounded-full text-sm flex items-center justify-center mt-0.5">3</div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Wait for Verification</h3>
+              <p class="text-sm text-gray-600 mt-1">
+                We will contact you within 24 hours to verify your order and payment.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+          <p class="text-sm text-yellow-800 text-left">
+            <strong>Important:</strong> Your order will only be processed after we verify your payment.
+          </p>
+        </div>
+
+        <button
+          @click="completeOrderProcess"
+          class="w-full px-4 py-3 bg-[rgb(105,30,104)] text-white rounded-lg font-semibold hover:bg-[rgb(125,40,124)] transition-colors duration-200"
+        >
+          Got it! I'll complete these steps
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Order Form -->
+    <div
+      v-else
       class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 animate-fade-in max-h-[90vh] overflow-y-auto z-10 modal-scroll"
       role="document"
       aria-labelledby="order-title"
@@ -232,21 +322,20 @@ onBeforeUnmount(() => {
       <h2 id="order-title" class="text-2xl font-bold text-[rgb(105,30,104)] mb-1 text-center">Place Your Order</h2>
       <p class="text-sm text-gray-500 text-center mb-4">We'll contact you to confirm details</p>
 
-      <!-- Success Message -->
-      <div v-if="successMessage" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-        <p class="text-green-700 text-sm font-medium">{{ successMessage }}</p>
-      </div>
-
-      <!-- Error Message -->
       <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
         <p class="text-red-700 text-sm font-medium">{{ errorMessage }}</p>
       </div>
 
-      <!-- Cart Summary -->
+      <!-- Cart Summary with Total -->
       <div v-if="order.items.length > 0" class="mb-4 p-3 bg-gray-50 rounded-lg">
         <h3 class="font-semibold text-gray-700 mb-2">Your Cart ({{ cartStore.getTotalItems() }} item{{ cartStore.getTotalItems() !== 1 ? 's' : '' }})</h3>
         <div v-for="(item, index) in order.items" :key="index" class="flex justify-between text-sm py-1">
           <span>{{ item.product }} × {{ item.qty }}</span>
+          <span class="font-medium">{{ formatPrice(getProductPrice(item.product) * item.qty) }}</span>
+        </div>
+        <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold">
+          <span>Total:</span>
+          <span class="text-[rgb(105,30,104)]">{{ formatPrice(orderTotal) }}</span>
         </div>
       </div>
 
@@ -303,8 +392,12 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="space-y-2">
-            <div v-for="(item, idx) in order.items" :key="idx" class="flex gap-2">
-              <select v-model="item.product" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none">
+            <div v-for="(item, idx) in order.items" :key="idx" class="flex gap-2 items-start">
+              <select 
+                v-model="item.product" 
+                @change="updateItemPrice(idx)"
+                class="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none"
+              >
                 <option disabled value="">Select a product</option>
                 <option class="font-semibold">Ultima Stem Plus</option>
                 <option class="font-semibold">Ultima Stem Plus Business Package</option>
@@ -318,7 +411,10 @@ onBeforeUnmount(() => {
                 <option>Spirulina</option>
                 <option>Carvacrol</option>
               </select>
-              <input v-model.number="item.qty" type="number" min="1" class="w-24 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
+              <input v-model.number="item.qty" type="number" min="1" class="w-20 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none" />
+              <div class="w-24 text-sm font-medium text-gray-700 text-center py-2">
+                {{ formatPrice(getProductPrice(item.product) * item.qty) }}
+              </div>
               <button v-if="order.items.length > 1" type="button" @click="removeItem(idx)" class="text-red-600 px-2 rounded hover:bg-red-50 transition-colors duration-200">Remove</button>
             </div>
           </div>
@@ -328,6 +424,14 @@ onBeforeUnmount(() => {
         <div>
           <label class="block text-sm font-medium text-gray-700">Delivery instructions (optional)</label>
           <textarea v-model="order.delivery_instructions" rows="2" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none"></textarea>
+        </div>
+
+        <!-- Order Total Display -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div class="flex justify-between items-center">
+            <span class="text-lg font-bold text-purple-800">Order Total:</span>
+            <span class="text-2xl font-bold text-[rgb(105,30,104)]">{{ formatPrice(orderTotal) }}</span>
+          </div>
         </div>
 
         <div class="flex items-start gap-3">
@@ -349,8 +453,6 @@ onBeforeUnmount(() => {
               Submitting…
             </span>
           </button>
-
-          <div class="ml-auto text-sm text-green-600 font-medium" v-if="successMessage">{{ successMessage }}</div>
         </div>
       </form>
     </div>

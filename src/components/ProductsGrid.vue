@@ -29,7 +29,7 @@
 
             <!-- Price and Button -->
             <div class="mt-2 md:mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-              <div class="text-sm md:text-lg font-bold text-gray-800">{{ product.price }}</div>
+              <div class="text-sm md:text-lg font-bold text-gray-800">{{ formatPrice(product.price) }}</div>
               <button
                 @click="addToCart(product)"
                 class="bg-purple-800 text-white text-xs md:text-sm px-2 py-1 md:px-4 md:py-2 rounded transition hover:bg-purple-700 active:scale-95 whitespace-nowrap flex-shrink-0 w-full sm:w-auto mt-1 sm:mt-0"
@@ -48,15 +48,16 @@
 <script setup>
 import { ref } from 'vue'
 import { useCartStore } from './../stores/cart.js'
+import { productPrices, formatPrice } from './../data/products.js'
 
 const editableProducts = [
-  { file: 'BerryOrac', name: 'BerryOrac', intake: '3.1g / 12 Sachets', price: '1,608 PHP' },
-  { file: 'Berberine', name: 'Berberine', intake: '500mg / capsule', price: '5,950 PHP' },
-  { file: 'Bloom Gluta', name: 'Bloom Gluta', intake: '500mg / capsule', price: '1,804 PHP' },
-  { file: 'Carvacrol', name: 'Carvacrol', intake: '500mg / softgel', price: '1,795 PHP' },
-  { file: 'Equi C', name: 'Equi C', intake: '250mg / tablet', price: '1,625 PHP' },
-  { file: 'Nucleanse', name: 'Nucleanse', intake: '3.1g / sachet', price: '2,220 PHP' },
-  { file: 'Spirulina', name: 'Spirulina', intake: '250mg / tablet', price: '1,698 PHP' },
+  { file: 'BerryOrac', name: 'BerryOrac', intake: '3.1g / 12 Sachets', price: productPrices['BerryOrac'] },
+  { file: 'Berberine', name: 'Berberine', intake: '500mg / capsule', price: productPrices['Berberine'] },
+  { file: 'Bloom Gluta', name: 'Bloom Gluta', intake: '500mg / capsule', price: productPrices['Bloom Gluta'] },
+  { file: 'Carvacrol', name: 'Carvacrol', intake: '500mg / softgel', price: productPrices['Carvacrol'] },
+  { file: 'Equi C', name: 'Equi C', intake: '250mg / tablet', price: productPrices['Equi C'] },
+  { file: 'Nucleanse', name: 'Nucleanse', intake: '3.1g / sachet', price: productPrices['Nucleanse'] },
+  { file: 'Spirulina', name: 'Spirulina', intake: '250mg / tablet', price: productPrices['Spirulina'] },
 ]
 
 const cartStore = useCartStore()
@@ -81,6 +82,29 @@ try {
   const seen = new Set()
   const list = []
 
+  // Add Ultima Stem Plus products
+  const ultimaProducts = [
+    { file: 'ultima-stem-plus', name: 'Ultima Stem Plus', intake: 'Premium stem cell supplement', price: productPrices['Ultima Stem Plus'] },
+    { file: 'ultima-business', name: 'Ultima Stem Plus Business Package', intake: 'Business package', price: productPrices['Ultima Stem Plus Business Package'] },
+    { file: 'ultima-executive', name: 'Ultima Stem Plus Executive Package', intake: 'Executive package', price: productPrices['Ultima Stem Plus Executive Package'] },
+    { file: 'ultima-elite', name: 'Ultima Stem Plus Elite Package', intake: 'Elite package', price: productPrices['Ultima Stem Plus Elite Package'] },
+  ]
+
+  // Add Ultima products first
+  for (const e of ultimaProducts) {
+    const src = imagesMap[e.file]
+    if (src) {
+      seen.add(e.file)
+      list.push({
+        src,
+        name: e.name,
+        intake: e.intake,
+        price: e.price
+      })
+    }
+  }
+
+  // Then add other products
   for (const e of editableProducts) {
     const src = imagesMap[e.file]
     if (!src) {
@@ -89,7 +113,7 @@ try {
           src: '',
           name: e.name,
           intake: e.intake || '500mg / capsule',
-          price: e.price || '5,950 PHP'
+          price: e.price || 0
         })
       }
       continue
@@ -99,7 +123,7 @@ try {
       src,
       name: e.name || e.file,
       intake: e.intake || '500mg / capsule',
-      price: e.price || '5,950 PHP'
+      price: e.price || 0
     })
   }
 
@@ -109,7 +133,7 @@ try {
       src,
       name: fname.replace(/[-_]/g, ' '),
       intake: '500mg / capsule',
-      price: '5,950 PHP'
+      price: 0
     })
   }
 

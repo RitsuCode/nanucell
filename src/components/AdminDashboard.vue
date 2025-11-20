@@ -35,7 +35,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
           <div class="flex items-center">
             <div class="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -88,6 +88,21 @@
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Total Customers</p>
               <p class="text-2xl font-semibold text-gray-900">{{ uniqueCustomers }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Revenue Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Revenue</p>
+              <p class="text-2xl font-semibold text-gray-900">{{ formatPrice(totalRevenue) }}</p>
             </div>
           </div>
         </div>
@@ -155,6 +170,9 @@
                   Status
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -183,8 +201,9 @@
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900">
                   <div class="max-w-xs">
-                    <div v-for="(item, index) in order.items" :key="index" class="truncate">
-                      {{ item.product }} × {{ item.qty }}
+                    <div v-for="(item, index) in order.items" :key="index" class="flex justify-between">
+                      <span class="truncate">{{ item.product }} × {{ item.qty }}</span>
+                      <span class="font-medium ml-2">{{ formatPrice((item.price || getProductPrice(item.product)) * item.qty) }}</span>
                     </div>
                     <div class="text-gray-500 text-xs mt-1">
                       Total: {{ getTotalItems(order.items) }} items
@@ -222,6 +241,9 @@
                     <option value="completed">Completed</option>
                   </select>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                  {{ formatPrice(order.total || calculateOrderTotal(order.items)) }}
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ formatDateTime(order.date || order.createdAt) }}
                 </td>
@@ -258,6 +280,24 @@
             View all orders
           </button>
         </div>
+
+        <!-- Total Revenue Summary -->
+        <div v-if="!loading && filteredOrders.length > 0" class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium text-gray-700">
+              Showing {{ filteredOrders.length }} order{{ filteredOrders.length !== 1 ? 's' : '' }}
+              <span v-if="statusFilter !== 'all'">({{ statusFilter }})</span>
+            </span>
+            <div class="text-right">
+              <div class="text-sm font-medium text-gray-700">
+                Filtered Total: <span class="text-lg font-bold text-green-600">{{ formatPrice(filteredRevenue) }}</span>
+              </div>
+              <div class="text-xs text-gray-500">
+                Average Order: {{ formatPrice(averageOrderValue) }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -271,6 +311,7 @@ import {
   deleteOrder, 
   subscribeToOrders 
 } from '../firebase'
+import { formatPrice, getProductPrice, calculateOrderTotal } from '../data/products.js'
 
 const emit = defineEmits(['logout'])
 
@@ -300,6 +341,25 @@ const pendingOrders = computed(() => {
 const uniqueCustomers = computed(() => {
   const emails = new Set(orders.value.map(order => order.email))
   return emails.size
+})
+
+const totalRevenue = computed(() => {
+  return orders.value.reduce((total, order) => {
+    const orderTotal = order.total || calculateOrderTotal(order.items)
+    return total + orderTotal
+  }, 0)
+})
+
+const filteredRevenue = computed(() => {
+  return filteredOrders.value.reduce((total, order) => {
+    const orderTotal = order.total || calculateOrderTotal(order.items)
+    return total + orderTotal
+  }, 0)
+})
+
+const averageOrderValue = computed(() => {
+  if (filteredOrders.value.length === 0) return 0
+  return filteredRevenue.value / filteredOrders.value.length
 })
 
 const sortedOrders = computed(() => {
@@ -387,19 +447,23 @@ const exportOrders = () => {
 }
 
 const convertToCSV = (orders) => {
-  const headers = ['Order ID', 'Customer Name', 'Email', 'Contact', 'Address', 'Items', 'Total Items', 'Payment Method', 'Status', 'Date']
-  const rows = orders.map(order => [
-    order.id.slice(-6),
-    `"${order.name}"`,
-    order.email,
-    order.contact,
-    `"${order.address.street}, ${order.address.city}, ${order.address.province}"`,
-    `"${order.items.map(item => `${item.product} × ${item.qty}`).join(', ')}"`,
-    getTotalItems(order.items),
-    order.payment_method,
-    order.status,
-    formatDateTime(order.date || order.createdAt)
-  ])
+  const headers = ['Order ID', 'Customer Name', 'Email', 'Contact', 'Address', 'Items', 'Total Items', 'Total Amount', 'Payment Method', 'Status', 'Date']
+  const rows = orders.map(order => {
+    const orderTotal = order.total || calculateOrderTotal(order.items)
+    return [
+      order.id.slice(-6),
+      `"${order.name}"`,
+      order.email,
+      order.contact,
+      `"${order.address.street}, ${order.address.city}, ${order.address.province}"`,
+      `"${order.items.map(item => `${item.product} × ${item.qty}`).join(', ')}"`,
+      getTotalItems(order.items),
+      formatPrice(orderTotal),
+      order.payment_method,
+      order.status,
+      formatDateTime(order.date || order.createdAt)
+    ]
+  })
   
   return [headers, ...rows].map(row => row.join(',')).join('\n')
 }
