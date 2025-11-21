@@ -4,10 +4,10 @@
       <!-- Two columns with equal height and centered alignment -->
       <div class="flex flex-col lg:flex-row gap-8 items-center justify-center">
         <!-- Video Section - Same height as carousel -->
-        <div class="w-full lg:w-2/5 flex items-center justify-center">
-          <div class=" shadow-lg rounded-lg border-2 border-gray-200">
+        <div class="w-full flex justify-center">
+          <div class="w-full sm:w-1/2 shadow-lg rounded-lg">
             <iframe
-              class="w-full aspect-[4/5] rounded-lg bg-black"
+              class="w-full aspect-[9/16] bg-black"
               :src="video"
               allow="autoplay; encrypted-media"
               allowfullscreen
@@ -17,7 +17,7 @@
         </div>
 
         <!-- Carousel Section - Same height as video -->
-        <div class="w-full lg:w-3/5 flex items-center justify-center">
+        <div class="w-full lg:w-3/5 flex items-center justify-center lg:mr-48">
           <div class="w-full max-w-4xl border-2 rounded-lg border-gray-200 overflow-hidden bg-white shadow-lg">
             <div
               class="relative bg-white rounded-lg overflow-hidden w-full"

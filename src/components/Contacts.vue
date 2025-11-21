@@ -27,9 +27,10 @@
               </div>
               <a
                 class="underline underline-offset-2 text-white/95 text-sm md:text-base text-center md:text-left break-all"
-                href="mailto:nanuhealthshop@gmail.com"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=nanucellhealthshop@gmail.com"
+                target="_blank"
               >
-                nanuhealthshop@gmail.com
+                nanucellhealthshop@gmail.com
               </a>
             </li>
 
@@ -40,9 +41,9 @@
               </div>
               <a
                 class="underline underline-offset-2 text-white/95 text-sm md:text-base text-center md:text-left"
-                href="tel:+639274179538"
+                href="tel:+639620514485"
               >
-                0927 417 9538
+                0962 051 4485
               </a>
             </li>
           </ul>
@@ -61,7 +62,7 @@
           <div class="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
             <a
               class="flex flex-col sm:flex-row items-center gap-3 text-white hover:scale-105 transition-transform"
-              href="https://www.facebook.com/nanucellonlineshop"
+              href="https://www.facebook.com/profile.php?id=61584042001599"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -71,7 +72,7 @@
                 <Facebook class="w-5 h-5 text-white" />
               </div>
               <span class="text-sm md:text-base underline underline-offset-2 text-center sm:text-left break-all">
-                www.facebook.com/nanucellonlineshop
+                Nanucell Health Shop FB Page
               </span>
             </a>
           </div>

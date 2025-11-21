@@ -8,14 +8,14 @@
         </div>
 
         <!-- Right: Video - Full width on mobile, 1/3 on desktop -->
-        <div class="w-full lg:w-1/3 flex items-center justify-center sm:w-3/4 bg-black rounded-xl order-2">
-          <div class="w-full max-w-sm lg:max-w-full sm:max-w-sm border-solid border-8 border-black rounded-lg shadow-lg overflow-hidden">
+        <div class="w-full lg:w-1/3 flex items-center justify-center sm:w-3/4 rounded-xl order-2">
+          <div class="w-full max-w-sm lg:max-w-full sm:max-w-sm p-10 rounded-lg overflow-hidden">
             <iframe
-              class="w-full aspect-[4/5] lg:aspect-[4/5] rounded-lg shadow-lg"
+              class="w-full sm:w-11/12 aspect-[9/16] rounded-lg shadow-lg border-solid border-4 border-[rgb(105,30,104)]"
               :src="docVideo"
               allow="autoplay; encrypted-media"
               allowfullscreen
-              style="border: none;"
+              style="border:rgb(from color 0 0 0);"
             ></iframe>
           </div>
         </div>
