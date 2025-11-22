@@ -259,8 +259,8 @@ onBeforeUnmount(() => {
               <h3 class="font-semibold text-gray-900">Send GCash Payment</h3>
               <p class="text-sm text-gray-600 mt-1">
                 Send your payment of <strong class="text-[rgb(105,30,104)]">{{ formatPrice(orderTotal) }}</strong> to:<br>
-                <strong class="text-[rgb(105,30,104)]">0917 123 4567</strong><br>
-                Account Name: <strong>Nanucell Enterprises</strong>
+                <strong class="text-[rgb(105,30,104)]">0927 822 1746</strong><br>
+                Account Name: <strong>Ma**A El***A G.</strong>
               </p>
             </div>
           </div>
