@@ -393,11 +393,38 @@ const formatDateTime = (dateString) => {
   })
 }
 
-const formatTime = (dateString) => {
-  return new Date(dateString).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const formatTime = (dateInput) => {
+  if (!dateInput) return '—'
+  const d = dateInput instanceof Date ? dateInput : parseStoredTime(dateInput)
+  if (!d) return '—'
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+// helper to parse a variety of stored formats
+function parseStoredTime(val) {
+  if (!val) return null
+
+  // numeric string (milliseconds)
+  if (/^\d+$/.test(val)) {
+    const n = Number(val)
+    const d = new Date(n)
+    return isNaN(d) ? null : d
+  }
+
+  // try JSON (maybe stored as number/string inside JSON)
+  try {
+    const parsed = JSON.parse(val)
+    if (typeof parsed === 'number' || typeof parsed === 'string') {
+      const d = new Date(parsed)
+      if (!isNaN(d)) return d
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // fallback to Date constructor
+  const d = new Date(val)
+  return isNaN(d) ? null : d
 }
 
 const handleLogout = () => {
@@ -437,7 +464,9 @@ const deleteOrderFromFirebase = async (order) => {
 
 const exportOrders = () => {
   const csvContent = convertToCSV(orders.value)
-  const blob = new Blob([csvContent], { type: 'text/csv' })
+  // prepend UTF-8 BOM so Excel (Windows) opens the file with correct UTF-8 encoding
+  const bom = '\uFEFF'
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -448,24 +477,45 @@ const exportOrders = () => {
 
 const convertToCSV = (orders) => {
   const headers = ['Order ID', 'Customer Name', 'Email', 'Contact', 'Address', 'Items', 'Total Items', 'Total Amount', 'Payment Method', 'Status', 'Date']
+
+  const escape = (val) => {
+    if (val === null || val === undefined) return '""'
+    const s = String(val)
+    return '"' + s.replace(/"/g, '""') + '"'
+  }
+
   const rows = orders.map(order => {
-    const orderTotal = order.total || calculateOrderTotal(order.items)
+    const orderTotal = (order.total !== undefined && order.total !== null) ? order.total : calculateOrderTotal(order.items || [])
+    const address = `${order.address?.street || ''}${order.address?.city ? ', ' + order.address.city : ''}${order.address?.province ? ', ' + order.address.province : ''}`.trim()
+
+    // Build items string using semicolons to avoid accidental CSV comma splitting
+    const itemsStr = (order.items || []).map(item => {
+      const pricePart = item.price ? ` @ ${formatPrice(item.price)}` : ''
+      return `${item.product} × ${item.qty}${pricePart}`
+    }).join('; ')
+
     return [
-      order.id.slice(-6),
-      `"${order.name}"`,
-      order.email,
-      order.contact,
-      `"${order.address.street}, ${order.address.city}, ${order.address.province}"`,
-      `"${order.items.map(item => `${item.product} × ${item.qty}`).join(', ')}"`,
-      getTotalItems(order.items),
+      order.id ? String(order.id).slice(-6) : '',
+      order.name || '',
+      order.email || '',
+      order.contact || '',
+      address,
+      itemsStr,
+      getTotalItems(order.items || []),
       formatPrice(orderTotal),
-      order.payment_method,
-      order.status,
-      formatDateTime(order.date || order.createdAt)
+      order.payment_method || '',
+      order.status || '',
+      formatDateTime(order.date || order.createdAt || '')
     ]
   })
-  
-  return [headers, ...rows].map(row => row.join(',')).join('\n')
+
+  // Combine header + rows with proper CSV escaping
+  const csvLines = [
+    headers.map(h => escape(h)).join(','),
+    ...rows.map(row => row.map(cell => escape(cell)).join(','))
+  ]
+
+  return csvLines.join('\n')
 }
 
 const initializeFirebaseListener = () => {
@@ -478,9 +528,10 @@ const initializeFirebaseListener = () => {
 
 // Check authentication and load orders on component mount
 onMounted(() => {
-  const loginTime = localStorage.getItem('adminLoginTime')
-  lastLoginTime.value = loginTime
-  
+  const stored = localStorage.getItem('adminLoginTime')
+  const parsed = parseStoredTime(stored)
+  lastLoginTime.value = parsed // store Date (or null)
+
   // Initialize Firebase real-time listener
   initializeFirebaseListener()
 })

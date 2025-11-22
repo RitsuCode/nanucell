@@ -110,7 +110,10 @@ const handleLogin = async () => {
 
   try {
     await loginAdmin(email.value, password.value)
+    // mark admin authenticated
     localStorage.setItem('adminAuthenticated', 'true')
+    // store login time in ISO format so AdminDashboard can parse/display it reliably
+    localStorage.setItem('adminLoginTime', new Date().toISOString())
     emit('login')
   } catch (err) {
     console.error(err)

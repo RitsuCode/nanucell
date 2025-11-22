@@ -18,7 +18,7 @@ const order = reactive({
   items: [],
   preferred_date: '',
   preferred_time: '',
-  payment_method: 'cash',
+  payment_method: 'gcash',
   accept_terms: false
 })
 
@@ -271,7 +271,7 @@ onBeforeUnmount(() => {
               <h3 class="font-semibold text-gray-900">Email Your Receipt</h3>
               <p class="text-sm text-gray-600 mt-1">
                 Send the payment receipt to:<br>
-                <strong class="text-[rgb(105,30,104)]">orders@nanucell.com</strong><br>
+                <strong class="text-[rgb(105,30,104)]">nanucellhealthshop@gmail.com</strong><br>
                 Subject: <strong>"{{ customerName }} Payment - {{ formatPrice(orderTotal) }}"</strong>
               </p>
             </div>
@@ -365,7 +365,6 @@ onBeforeUnmount(() => {
           <div>
             <label class="block text-sm font-medium text-gray-700">Payment method</label>
             <select v-model="order.payment_method" class="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[rgb(105,30,104)] outline-none">
-              <option value="cash">Cash on delivery</option>
               <option value="gcash">GCash / e-wallet</option>
               <option value="card">Card (online)</option>
             </select>
