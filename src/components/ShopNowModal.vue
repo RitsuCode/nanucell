@@ -256,11 +256,15 @@ onBeforeUnmount(() => {
           <div class="flex items-start gap-3">
             <div class="flex-shrink-0 w-6 h-6 bg-[rgb(105,30,104)] text-white rounded-full text-sm flex items-center justify-center mt-0.5">1</div>
             <div>
-              <h3 class="font-semibold text-gray-900">Send GCash Payment</h3>
-              <p class="text-sm text-gray-600 mt-1">
+              <h3 class="font-semibold text-gray-900" v-if="order.payment_method === 'gcash'">Send GCash Payment</h3>
+              <h3 class="font-semibold text-gray-900" v-if="order.payment_method === 'card'">Send Card Payment</h3>
+              <p class="text-sm text-gray-600 mt-1" v-if="order.payment_method === 'gcash'">
                 Send your payment of <strong class="text-[rgb(105,30,104)]">{{ formatPrice(orderTotal) }}</strong> to:<br>
                 <strong class="text-[rgb(105,30,104)]">0927 822 1746</strong><br>
                 Account Name: <strong>Ma**A El***A G.</strong>
+              </p>
+              <p class="text-sm text-gray-600 mt-1" v-if="order.payment_method === 'card'">
+                We'll contact you for the bank details.
               </p>
             </div>
           </div>
